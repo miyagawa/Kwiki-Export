@@ -3,14 +3,14 @@ use Kwiki::Plugin -Base;
 use mixin 'Kwiki::Installer';
 use Kwiki;
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 const class_id => 'export';
 const class_title => 'Export Content';
 const cgi_class => 'Kwiki::Export::CGI';
 const config_file => 'export.yaml';
 
-use Archive::Zip;
+use Archive::Any::Create;
 use DirHandle;
 use File::Spec;
 use HTML::WikiConverter;
@@ -50,17 +50,18 @@ sub export {
 
 sub export_all {
     my $formatter = shift;
-    my $name = "kwiki-$formatter.zip";
-    my $zip = Archive::Zip->new;
-    $zip->addDirectory("kwiki-$formatter/");
+    my $ext  = $self->hub->config->export_format;
+    my $name = "kwiki-$formatter.$ext";
+    my $archive = Archive::Any::Create->new;
+    $archive->container("kwiki-$formatter");
     for my $page ($self->pages->all) {
         my $newformat = $self->convert_wiki($page->to_html, $formatter);
-        $zip->addString($newformat, "kwiki-$formatter/" . $page->id);
+        $archive->add_file($page->id, $newformat);
     }
 
     print "Content-Type: application/octet-stream; name=$name\r\n",
         "Content-Disposition: attachment; filename=$name\r\n\r\n";
-    $zip->writeToFileHandle(\*STDOUT);
+    $archive->write_filehandle(\*STDOUT, $ext);
     return '';
 }
 
@@ -130,6 +131,7 @@ L<HTML::WikiConverter>, L<Kwiki::Edit>
 
 __config/export.yaml__
 default_export: Kwiki
+export_format: zip
 __template/tt2/export_content.html__
 <form method="POST">
 <select name="formatter">

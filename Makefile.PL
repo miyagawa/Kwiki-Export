@@ -6,5 +6,6 @@ WriteMakefile(
 	Test::More => 0.32,
         Kwiki => 0,
         HTML::WikiConverter => 0.50,
+        Archive::Any::Create => 0,
     },
 );
